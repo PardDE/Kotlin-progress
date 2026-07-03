@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kotlin 30-Tage-Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: #2a2a35;
+    --accent: #7c6af7;
+    --accent-dim: #3d2f7a;
+    --accent-glow: rgba(124,106,247,0.15);
+    --green: #4ade80;
+    --green-dim: #14532d;
+    --green-bg: rgba(74,222,128,0.08);
+    --text: #f0f0f5;
+    --text-muted: #6b6b80;
+    --text-dim: #9090a8;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+ 
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+ 
+  /* grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,247,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,247,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+ 
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+ 
+  /* ── Header ── */
+  header {
+    padding: 48px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+ 
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+ 
+  .logo-area h1 {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+ 
+  .logo-area h1 span {
+    color: var(--accent);
+  }
+ 
+  .logo-area p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 300;
+  }
+ 
+  .streak-pill {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: rgba(250,176,5,0.1);
+    border: 1px solid rgba(250,176,5,0.3);
+    color: #fbbf24;
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+ 
+  /* ── Stats ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+ 
+  @media (max-width: 600px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+ 
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+ 
+  .stat-card .num {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+ 
+  .stat-card .num.accent { color: var(--accent); }
+  .stat-card .num.green  { color: var(--green); }
+ 
+  .stat-card .lbl {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+  }
+ 
+  /* ── Progress ── */
+  .progress-section {
+    margin-bottom: 36px;
+  }
+ 
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+ 
+  .progress-header span {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+ 
+  .progress-track {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+ 
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #a78bfa);
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+ 
+  /* ── Phase Tabs ── */
+  .phase-nav {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+ 
+  .ptab {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+ 
+  .ptab:hover { border-color: var(--accent); color: var(--accent); }
+  .ptab.active { background: var(--accent-dim); border-color: var(--accent); color: #c4b5fd; }
+ 
+  /* ── Phase heading ── */
+  .phase-heading {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    padding-left: 2px;
+  }
+ 
+  /* ── Day Cards ── */
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+    overflow: hidden;
+  }
+ 
+  .day-card:hover { border-color: #3a3a50; }
+  .day-card.done { background: var(--green-bg); border-color: rgba(74,222,128,0.25); }
+  .day-card.open { border-color: rgba(124,106,247,0.4); }
+  .day-card.done.open { border-color: rgba(74,222,128,0.5); }
+ 
+  .day-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+ 
+  .check-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: transparent;
+    font-size: 13px;
+  }
+ 
+  .check-circle:hover {
+    border-color: var(--green);
+    color: rgba(74,222,128,0.4);
+  }
+ 
+  .day-card.done .check-circle {
+    background: var(--green);
+    border-color: var(--green);
+    color: #0d0d0f;
+  }
+ 
+  .check-circle svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+ 
+  .day-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    min-width: 54px;
+    text-align: center;
+  }
+ 
+  .day-card.done .day-num {
+    background: rgba(74,222,128,0.12);
+    color: var(--green);
+    border-color: rgba(74,222,128,0.3);
+  }
+ 
+  .day-title-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    flex: 1;
+  }
+ 
+  .day-card.done .day-title-text { color: var(--green); }
+ 
+  .chev {
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+ 
+  .day-card.open .chev { transform: rotate(180deg); }
+ 
+  .chev svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+ 
+  /* ── Day Body ── */
+  .day-body {
+    display: none;
+    padding: 0 18px 18px 18px;
+    border-top: 1px solid var(--border);
+    margin-top: 0;
+  }
+ 
+  .day-card.done .day-body { border-color: rgba(74,222,128,0.15); }
+  .day-card.open .day-body { display: block; }
+ 
+  .day-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    padding: 14px 0 12px;
+  }
+ 
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+ 
+  .tag {
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+ 
+  .video-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--surface2);
+    text-decoration: none;
+    color: var(--text);
+    font-size: 13px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+ 
+  .video-link:hover {
+    border-color: var(--accent);
+    color: #c4b5fd;
+    background: var(--accent-glow);
+  }
+ 
+  .yt-icon {
+    color: #ff4444;
+    flex-shrink: 0;
+  }
+ 
+  .yt-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+ 
+  .task-box {
+    background: rgba(74,222,128,0.06);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #86efac;
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+ 
+  .task-box::before {
+    content: '▸ ';
+    font-family: var(--mono);
+    opacity: 0.6;
+  }
+ 
+  .mark-btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+ 
+  .mark-btn:hover {
+    border-color: var(--green);
+    color: var(--green);
+    background: var(--green-bg);
+  }
+ 
+  .day-card.done .mark-btn {
+    border-color: rgba(74,222,128,0.3);
+    color: var(--green);
+    background: rgba(74,222,128,0.06);
+  }
+ 
+  .day-card.done .mark-btn:hover {
+    border-color: #f87171;
+    color: #f87171;
+    background: rgba(248,113,113,0.06);
+  }
+ 
+  /* ── Reset ── */
+  .reset-area {
+    margin-top: 60px;
+    text-align: center;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+ 
+  .reset-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 7px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.04em;
+  }
+ 
+  .reset-btn:hover { border-color: #f87171; color: #f87171; }
+ 
+  /* Phase sections */
+  .phase-section { display: none; }
+  .phase-section.visible { display: block; }
+ 
+  /* Completion banner */
+  .complete-banner {
+    display: none;
+    background: linear-gradient(135deg, rgba(74,222,128,0.1), rgba(124,106,247,0.1));
+    border: 1px solid rgba(74,222,128,0.3);
+    border-radius: 14px;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 32px;
+  }
+ 
+  .complete-banner h2 {
+    font-family: var(--mono);
+    font-size: 18px;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+ 
+  .complete-banner p {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+ 
+  <header>
+    <div class="header-top">
+      <div class="logo-area">
+        <h1>Kotlin <span>//</span> 30-Tage-Plan</h1>
+        <p>Von null zum Profi — hake jeden Tag ab wenn du fertig bist</p>
+      </div>
+      <div class="streak-pill" id="streak-pill">
+        🔥 <span id="streak-num">0</span> Tage Streak
+      </div>
+    </div>
+  </header>
+ 
+  <div class="complete-banner" id="complete-banner">
+    <h2>// Kotlin-Profi achieved!</h2>
+    <p>Alle 30 Tage abgeschlossen. Du bist jetzt ein Kotlin-Entwickler.</p>
+  </div>
+ 
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="num green" id="s-done">0</div>
+      <div class="lbl">Erledigt</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="s-left">30</div>
+      <div class="lbl">Verbleibend</div>
+    </div>
+    <div class="stat-card">
+      <div class="num accent" id="s-pct">0%</div>
+      <div class="lbl">Fortschritt</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="s-streak" style="color:#fbbf24">0</div>
+      <div class="lbl">Streak</div>
+    </div>
+  </div>
+ 
+  <div class="progress-section">
+    <div class="progress-header">
+      <span>Gesamtfortschritt</span>
+      <span id="prog-txt">0 / 30 Tage</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="prog-fill"></div>
+    </div>
+  </div>
+ 
+  <div class="phase-nav">
+    <button class="ptab active" onclick="showPhase(1,this)">Phase 1 — Grundlagen</button>
+    <button class="ptab" onclick="showPhase(2,this)">Phase 2 — OOP</button>
+    <button class="ptab" onclick="showPhase(3,this)">Phase 3 — Fortgeschritten</button>
+    <button class="ptab" onclick="showPhase(4,this)">Phase 4 — Praxis</button>
+  </div>
+ 
+  <!-- ═══════════════════════ PHASE 1 ═══════════════════════ -->
+  <div class="phase-section visible" id="p1">
+    <div class="phase-heading">Phase 1 · Tage 1–7 · Grundlagen &amp; Setup</div>
+ 
+    <div class="day-card" id="d1">
+      <div class="day-header" onclick="toggleCard('d1')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d1')" aria-label="Tag 1 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 01</span>
+        <span class="day-title-text">Warum Kotlin? Setup &amp; erstes Programm</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Kotlin kennenlernen, IntelliJ IDEA installieren, erstes "Hello World" schreiben. Verstehen warum Kotlin Java in vielen Bereichen ablöst und was die Vorteile der Sprache sind.</p>
+        <div class="tags"><span class="tag">Installation</span><span class="tag">IntelliJ IDEA</span><span class="tag">Hello World</span><span class="tag">Kotlin vs Java</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=dzUc9vrsldM" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Full 2025 Kotlin Crash Course for Beginners — Philipp Lackner
+        </a>
+        <div class="task-box">IntelliJ installieren, erstes Kotlin-Projekt erstellen und "Hello, [dein Name]!" auf der Konsole ausgeben</div>
+        <button class="mark-btn" onclick="toggleDone('d1')" id="btn-d1">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d2">
+      <div class="day-header" onclick="toggleCard('d2')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d2')" aria-label="Tag 2 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 02</span>
+        <span class="day-title-text">Variablen, Datentypen &amp; val vs var</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">val (unveränderlich) vs var (veränderlich), alle Basis-Datentypen (Int, String, Boolean, Double, Long), Type Inference. Kotlin macht hier vieles eleganter als Java.</p>
+        <div class="tags"><span class="tag">val / var</span><span class="tag">Int, String, Boolean</span><span class="tag">Type Inference</span><span class="tag">Datentypen</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=dzUc9vrsldM" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner Crash Course — Variablen &amp; Typen
+        </a>
+        <div class="task-box">Programm mit mindestens 5 verschiedenen Variablen verschiedener Typen schreiben und deren Werte ausgeben</div>
+        <button class="mark-btn" onclick="toggleDone('d2')" id="btn-d2">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d3">
+      <div class="day-header" onclick="toggleCard('d3')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d3')" aria-label="Tag 3 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 03</span>
+        <span class="day-title-text">String Templates &amp; Null Safety</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Eines der stärksten Features von Kotlin: Null Safety. Keine NullPointerExceptions mehr! Der ?. Safe-Call-Operator, der ?: Elvis-Operator und !! für bewusste NPE. Plus String-Templates mit $variable und ${ausdruck}.</p>
+        <div class="tags"><span class="tag">Nullable Types</span><span class="tag">?. Safe Call</span><span class="tag">?: Elvis</span><span class="tag">String Templates</span><span class="tag">!!</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=wuiT4T_LJQo" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Kotlin Full 9-Hour Course — Null Safety Kapitel (freeCodeCamp)
+        </a>
+        <div class="task-box">Funktionen schreiben die Null zurückgeben können und alle Fälle sicher mit ?., ?: und let behandeln</div>
+        <button class="mark-btn" onclick="toggleDone('d3')" id="btn-d3">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d4">
+      <div class="day-header" onclick="toggleCard('d4')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d4')" aria-label="Tag 4 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 04</span>
+        <span class="day-title-text">Kontrollfluss: if, when, Schleifen</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">if als Expression (gibt einen Wert zurück!), das mächtige when als Ersatz für switch, for-Schleifen mit Ranges (.., until, downTo, step), while und do-while.</p>
+        <div class="tags"><span class="tag">when expression</span><span class="tag">for / while</span><span class="tag">Ranges</span><span class="tag">if als Expression</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=F9UC9DY-vIU" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Kotlin Course for Beginners — freeCodeCamp (Kontrollfluss-Abschnitt)
+        </a>
+        <div class="task-box">Einfachen Taschenrechner mit when-Expression bauen (+, -, *, / und Modulo)</div>
+        <button class="mark-btn" onclick="toggleDone('d4')" id="btn-d4">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d5">
+      <div class="day-header" onclick="toggleCard('d5')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d5')" aria-label="Tag 5 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 05</span>
+        <span class="day-title-text">Funktionen &amp; Default-Parameter</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Normale Funktionen, Single-Expression-Functions (fun add(a: Int, b: Int) = a + b), Default- und Named Parameters. Kotlin-Funktionen sind kürzer und expressiver als in Java.</p>
+        <div class="tags"><span class="tag">fun</span><span class="tag">Default-Parameter</span><span class="tag">Named Arguments</span><span class="tag">Single-Expression</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=dzUc9vrsldM" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner Crash Course — Funktionen &amp; Lambdas
+        </a>
+        <div class="task-box">5 verschiedene Funktionen schreiben: darunter eine Single-Expression, eine mit Default-Parametern und eine mit Named Arguments</div>
+        <button class="mark-btn" onclick="toggleDone('d5')" id="btn-d5">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d6">
+      <div class="day-header" onclick="toggleCard('d6')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d6')" aria-label="Tag 6 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 06</span>
+        <span class="day-title-text">Collections: Lists, Sets, Maps</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Mutable vs Immutable Collections — listOf vs mutableListOf, setOf vs mutableSetOf, mapOf vs mutableMapOf. Iteration mit forEach und indices.</p>
+        <div class="tags"><span class="tag">listOf / mutableListOf</span><span class="tag">Map</span><span class="tag">Set</span><span class="tag">forEach</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=EExSSotojVI" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Learn Kotlin Programming — Collections (freeCodeCamp)
+        </a>
+        <div class="task-box">Kontaktliste als Map (Name → Telefonnummer) erstellen, alle Kontakte ausgeben und nach Name suchen</div>
+        <button class="mark-btn" onclick="toggleDone('d6')" id="btn-d6">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d7">
+      <div class="day-header" onclick="toggleCard('d7')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d7')" aria-label="Tag 7 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 07</span>
+        <span class="day-title-text">Woche 1 Recap &amp; Mini-Projekt</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Alles aus Woche 1 festigen. Kein neues Material — nur bauen und üben. Wenn etwas unklar ist, heute nochmal anschauen.</p>
+        <div class="tags"><span class="tag">Recap</span><span class="tag">Mini-Projekt</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=iYrgWO2oibY" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Learn Kotlin in 12 Minutes — schneller Recap aller Basics
+        </a>
+        <div class="task-box">Mini-Projekt: To-Do-Listen-App auf der Konsole — Aufgaben hinzufügen, alle anzeigen, als erledigt markieren, löschen</div>
+        <button class="mark-btn" onclick="toggleDone('d7')" id="btn-d7">Als erledigt markieren</button>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- ═══════════════════════ PHASE 2 ═══════════════════════ -->
+  <div class="phase-section" id="p2">
+    <div class="phase-heading">Phase 2 · Tage 8–15 · Objektorientierte Programmierung</div>
+ 
+    <div class="day-card" id="d8">
+      <div class="day-header" onclick="toggleCard('d8')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d8')" aria-label="Tag 8 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 08</span><span class="day-title-text">Klassen &amp; Objekte</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Klassen erstellen, Primary Constructor, Properties definieren, Objekte instanziieren, init-Block. Kotlin-Klassen sind deutlich kompakter als Java-Klassen.</p>
+        <div class="tags"><span class="tag">class</span><span class="tag">Primary Constructor</span><span class="tag">Properties</span><span class="tag">init</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=xAslJ-f9PWs" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          All Classes In Kotlin Explained — Philipp Lackner (2025)
+        </a>
+        <div class="task-box">Person-Klasse mit Name, Alter, E-Mail modellieren und eine Methode vorstellen() implementieren</div>
+        <button class="mark-btn" onclick="toggleDone('d8')" id="btn-d8">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d9">
+      <div class="day-header" onclick="toggleCard('d9')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d9')" aria-label="Tag 9 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 09</span><span class="day-title-text">Data Classes &amp; Destructuring</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Data Classes: Kotlins Antwort auf Boilerplate. Automatisch generiertes equals(), hashCode(), toString() und copy(). Destructuring Declarations mit componentN().</p>
+        <div class="tags"><span class="tag">data class</span><span class="tag">copy()</span><span class="tag">Destructuring</span><span class="tag">componentN()</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=xAslJ-f9PWs" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          All Classes In Kotlin Explained — Philipp Lackner
+        </a>
+        <div class="task-box">Data Classes für Buch, Autor, Verlag erstellen. copy() nutzen um geänderte Versionen zu erzeugen.</div>
+        <button class="mark-btn" onclick="toggleDone('d9')" id="btn-d9">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d10">
+      <div class="day-header" onclick="toggleCard('d10')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d10')" aria-label="Tag 10 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 10</span><span class="day-title-text">Vererbung &amp; Interfaces</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Vererbung mit open/override (Klassen sind standardmäßig final!), abstrakte Klassen, Interfaces mit Default-Implementierungen, Smart Casts mit is/as.</p>
+        <div class="tags"><span class="tag">open / override</span><span class="tag">abstract</span><span class="tag">interface</span><span class="tag">is / as</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=wuiT4T_LJQo" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Kotlin Full Course — Vererbungs-Kapitel (freeCodeCamp)
+        </a>
+        <div class="task-box">Tier-Hierarchie: Tier → Säugetier → Hund/Katze. Interface "Sprechend" mit Methode lautGeben() implementieren.</div>
+        <button class="mark-btn" onclick="toggleDone('d10')" id="btn-d10">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d11">
+      <div class="day-header" onclick="toggleCard('d11')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d11')" aria-label="Tag 11 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 11</span><span class="day-title-text">Sealed Classes &amp; Enum Classes</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Sealed Classes modellieren abgeschlossene Zustandsräume — perfekt für UI-States, Netzwerkergebnisse. Zusammen mit when wird jeder Fall erzwungen.</p>
+        <div class="tags"><span class="tag">sealed class</span><span class="tag">enum class</span><span class="tag">when + sealed</span><span class="tag">exhaustive when</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=xAslJ-f9PWs" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          All Classes In Kotlin Explained — Philipp Lackner
+        </a>
+        <div class="task-box">NetworkResult&lt;T&gt; als sealed class: Loading, Success(data: T), Error(message: String). Mit when alle Fälle behandeln.</div>
+        <button class="mark-btn" onclick="toggleDone('d11')" id="btn-d11">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d12">
+      <div class="day-header" onclick="toggleCard('d12')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d12')" aria-label="Tag 12 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 12</span><span class="day-title-text">Object, Companion Object &amp; Singletons</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Singletons mit dem object-Keyword, statische Member mit companion object. Kotlin hat kein static — companion object ist der elegante Ersatz.</p>
+        <div class="tags"><span class="tag">object</span><span class="tag">companion object</span><span class="tag">Singleton Pattern</span><span class="tag">@JvmStatic</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=xAslJ-f9PWs" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          All Classes In Kotlin Explained — Philipp Lackner
+        </a>
+        <div class="task-box">Datenbank-Manager als Singleton mit object, und eine Factory-Methode über companion object implementieren</div>
+        <button class="mark-btn" onclick="toggleDone('d12')" id="btn-d12">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d13">
+      <div class="day-header" onclick="toggleCard('d13')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d13')" aria-label="Tag 13 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 13</span><span class="day-title-text">Extension Functions &amp; Properties</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Bestehende Klassen erweitern ohne Vererbung — eines der beliebtesten Kotlin-Features. Extension Properties, Extension Functions auf Nullable Types.</p>
+        <div class="tags"><span class="tag">fun Type.name()</span><span class="tag">Extension Properties</span><span class="tag">this</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=dzUc9vrsldM" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner Crash Course — Extension Functions
+        </a>
+        <div class="task-box">5 nützliche Extension Functions: String.isPalindrome(), List&lt;Int&gt;.average(), Int.isEven(), String.capitalizeWords() etc.</div>
+        <button class="mark-btn" onclick="toggleDone('d13')" id="btn-d13">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d14">
+      <div class="day-header" onclick="toggleCard('d14')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d14')" aria-label="Tag 14 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 14</span><span class="day-title-text">Generics &amp; Type Safety</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Generische Klassen und Funktionen schreiben, in/out Varianz (Kovarianz/Kontravarianz), reified Type Parameters mit inline Functions.</p>
+        <div class="tags"><span class="tag">&lt;T&gt; Generics</span><span class="tag">in / out</span><span class="tag">reified</span><span class="tag">inline fun</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=dzUc9vrsldM" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner Crash Course — Generics
+        </a>
+        <div class="task-box">Generischen Stack&lt;T&gt; implementieren mit push(), pop(), peek() und isEmpty(). Dann mit verschiedenen Typen testen.</div>
+        <button class="mark-btn" onclick="toggleDone('d14')" id="btn-d14">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d15">
+      <div class="day-header" onclick="toggleCard('d15')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d15')" aria-label="Tag 15 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 15</span><span class="day-title-text">OOP-Projekt: Mini-Bank</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Alles aus Phase 2 in einem Projekt anwenden. Kein Tutorial-Follow-Along — nur selbst bauen!</p>
+        <div class="tags"><span class="tag">Freies Projekt</span><span class="tag">OOP Recap</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=EExSSotojVI" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Learn Kotlin Programming — freeCodeCamp (vollständiger Kurs als Referenz)
+        </a>
+        <div class="task-box">Bankkonto-System: Konten erstellen (Giro/Spar), einzahlen, abheben, überweisen, Kontostand. Sealed Classes für Transaktionsergebnisse nutzen.</div>
+        <button class="mark-btn" onclick="toggleDone('d15')" id="btn-d15">Als erledigt markieren</button>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- ═══════════════════════ PHASE 3 ═══════════════════════ -->
+  <div class="phase-section" id="p3">
+    <div class="phase-heading">Phase 3 · Tage 16–23 · Fortgeschrittene Konzepte</div>
+ 
+    <div class="day-card" id="d16">
+      <div class="day-header" onclick="toggleCard('d16')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d16')" aria-label="Tag 16 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 16</span><span class="day-title-text">Lambdas &amp; Higher-Order Functions</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Funktionen als Parameter übergeben und zurückgeben. Lambda-Syntax, it-Keyword, Function Types wie (Int) -> Boolean. Basis der funktionalen Programmierung.</p>
+        <div class="tags"><span class="tag">Lambda</span><span class="tag">Higher-Order</span><span class="tag">it</span><span class="tag">(T) -> R</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=dzUc9vrsldM" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner — Lambdas &amp; Higher-Order Functions
+        </a>
+        <div class="task-box">Eigene myFilter, myMap und myReduce für Listen implementieren — ohne die eingebauten Funktionen zu nutzen</div>
+        <button class="mark-btn" onclick="toggleDone('d16')" id="btn-d16">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d17">
+      <div class="day-header" onclick="toggleCard('d17')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d17')" aria-label="Tag 17 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 17</span><span class="day-title-text">Scope Functions: let, run, with, apply, also</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Die 5 Scope Functions — eines der verwirrendsten aber mächtigsten Kotlin-Konstrukte. Wann was: let (nullable), apply (konfigurieren), also (Logging), run (Ergebnis), with (kein Receiver).</p>
+        <div class="tags"><span class="tag">let</span><span class="tag">run</span><span class="tag">with</span><span class="tag">apply</span><span class="tag">also</span></div>
+        <a class="video-link" href="https://www.youtube.com/results?search_query=kotlin+scope+functions+let+run+apply+also+with+explained" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Kotlin Scope Functions Explained — YouTube suchen
+        </a>
+        <div class="task-box">Alten Code aus Tag 8–14 refactoren: Null-Checks durch let ersetzen, Objekte mit apply konfigurieren</div>
+        <button class="mark-btn" onclick="toggleDone('d17')" id="btn-d17">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d18">
+      <div class="day-header" onclick="toggleCard('d18')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d18')" aria-label="Tag 18 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 18</span><span class="day-title-text">Collections API: map, filter, fold, groupBy</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Kotlins funktionale Collections-API ist riesig. map, filter, flatMap, groupBy, sortedBy, fold, reduce, zip, partition, associate — 1 Zeile statt 10.</p>
+        <div class="tags"><span class="tag">map / filter</span><span class="tag">flatMap</span><span class="tag">groupBy</span><span class="tag">fold / reduce</span><span class="tag">partition</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=EExSSotojVI" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Learn Kotlin Programming — Collections API (freeCodeCamp)
+        </a>
+        <div class="task-box">100 Studenten-Liste: Alle mit Note ≥ 4 filtern, nach Klasse gruppieren, Notendurchschnitt pro Klasse berechnen</div>
+        <button class="mark-btn" onclick="toggleDone('d18')" id="btn-d18">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d19">
+      <div class="day-header" onclick="toggleCard('d19')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d19')" aria-label="Tag 19 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 19</span><span class="day-title-text">Coroutines — Einführung</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Async-Programmierung ohne Callbacks-Chaos. Coroutines sind leichtgewichtig und blockieren den Thread nicht. Basics: suspend fun, launch, delay, CoroutineScope, runBlocking.</p>
+        <div class="tags"><span class="tag">suspend fun</span><span class="tag">launch</span><span class="tag">delay</span><span class="tag">CoroutineScope</span><span class="tag">runBlocking</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=ZTDXo0-SKuU" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Kotlin Coroutines 101 — Google Android Conference
+        </a>
+        <div class="task-box">3 gleichzeitige "Downloads" mit Coroutines simulieren (delay). Zeige an, welcher zuerst fertig wird.</div>
+        <button class="mark-btn" onclick="toggleDone('d19')" id="btn-d19">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d20">
+      <div class="day-header" onclick="toggleCard('d20')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d20')" aria-label="Tag 20 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 20</span><span class="day-title-text">Coroutines — async, await, Dispatcher</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Parallele Ausführung mit async/await, Dispatchers.IO für I/O-Operationen, Dispatchers.Main für UI, withContext zum Wechseln, strukturiertes try-catch in Coroutines.</p>
+        <div class="tags"><span class="tag">async / await</span><span class="tag">Dispatchers</span><span class="tag">withContext</span><span class="tag">try-catch</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=ZTDXo0-SKuU" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Kotlin Coroutines 101 — Google (Fortsetzung)
+        </a>
+        <div class="task-box">Daten von 2 simulierten APIs parallel mit async laden, auf beide warten mit await und Ergebnisse kombinieren</div>
+        <button class="mark-btn" onclick="toggleDone('d20')" id="btn-d20">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d21">
+      <div class="day-header" onclick="toggleCard('d21')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d21')" aria-label="Tag 21 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 21</span><span class="day-title-text">Kotlin Flow</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Flow ist wie Coroutines für Datenströme. Cold Flow vs Hot Flow, StateFlow (hält letzten Wert), SharedFlow, collect, map/filter auf Flow.</p>
+        <div class="tags"><span class="tag">Flow</span><span class="tag">StateFlow</span><span class="tag">SharedFlow</span><span class="tag">collect</span><span class="tag">Cold vs Hot</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=kPIC8ytcXFM" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          How to Use Kotlin Flow Like a Pro — Droidcon 2024
+        </a>
+        <div class="task-box">Countdown-Timer mit Flow (tickt jede Sekunde von 60 runter) und einen Temperatur-Sensor Simulator als Hot Flow</div>
+        <button class="mark-btn" onclick="toggleDone('d21')" id="btn-d21">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d22">
+      <div class="day-header" onclick="toggleCard('d22')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d22')" aria-label="Tag 22 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 22</span><span class="day-title-text">DSLs &amp; Operator Overloading</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Domain Specific Languages mit Lambda with Receiver bauen. Operatoren überladen mit operator fun. Zeigt die volle Ausdrucksstärke von Kotlin.</p>
+        <div class="tags"><span class="tag">operator fun</span><span class="tag">DSL Builder</span><span class="tag">@DslMarker</span><span class="tag">Lambda with Receiver</span></div>
+        <a class="video-link" href="https://www.youtube.com/watch?v=wuiT4T_LJQo" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Kotlin 9h Course — DSL &amp; Operator Abschnitt (freeCodeCamp)
+        </a>
+        <div class="task-box">HTML-Builder DSL bauen: html { head { title("Test") } body { p("Hello!") } } — und Vector2D-Klasse mit + und * Operator</div>
+        <button class="mark-btn" onclick="toggleDone('d22')" id="btn-d22">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d23">
+      <div class="day-header" onclick="toggleCard('d23')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d23')" aria-label="Tag 23 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 23</span><span class="day-title-text">Testing mit JUnit 5 &amp; Kotest</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Unit Tests in Kotlin schreiben — JUnit 5 mit Kotlin-Extensions und Kotest für ausdrucksstarke Assertions. Gute Tests sind ein Zeichen von Professionalität.</p>
+        <div class="tags"><span class="tag">JUnit 5</span><span class="tag">Kotest</span><span class="tag">shouldBe</span><span class="tag">@Test</span><span class="tag">Mocking</span></div>
+        <a class="video-link" href="https://www.youtube.com/results?search_query=kotlin+unit+testing+junit5+kotest+2024" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Kotlin Unit Testing JUnit 5 — YouTube suchen
+        </a>
+        <div class="task-box">Tests für alle Funktionen aus dem Bank-Projekt (Tag 15) schreiben — Einzahlen, Abheben, Überweisen, Fehlerfall</div>
+        <button class="mark-btn" onclick="toggleDone('d23')" id="btn-d23">Als erledigt markieren</button>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- ═══════════════════════ PHASE 4 ═══════════════════════ -->
+  <div class="phase-section" id="p4">
+    <div class="phase-heading">Phase 4 · Tage 24–30 · Praxis &amp; echte Projekte</div>
+ 
+    <div class="day-card" id="d24">
+      <div class="day-header" onclick="toggleCard('d24')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d24')" aria-label="Tag 24 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 24</span><span class="day-title-text">Kotlin für Android — Grundlagen</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Kotlin ist die offizielle Sprache für Android. Android Studio einrichten, erste Activity, View-Binding, Button-Klick-Listener in Kotlin.</p>
+        <div class="tags"><span class="tag">Android Studio</span><span class="tag">Activity</span><span class="tag">View Binding</span><span class="tag">onClick</span></div>
+        <a class="video-link" href="https://www.youtube.com/playlist?list=PLQ_Ai1O7sMV0LRCZJaHpl_9WLQunMqrzG" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Kotlin für Android — Beginner to Advanced Playlist (2025)
+        </a>
+        <div class="task-box">Android-App erstellen die deinen Namen, ein Bild und einen Button zeigt. Button-Klick ändert den Text.</div>
+        <button class="mark-btn" onclick="toggleDone('d24')" id="btn-d24">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d25">
+      <div class="day-header" onclick="toggleCard('d25')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d25')" aria-label="Tag 25 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 25</span><span class="day-title-text">Jetpack Compose Basics</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Compose ist die moderne UI-Bibliothek für Android. Deklaratives UI mit @Composable-Funktionen — kein XML mehr! Column, Row, Text, Button, remember, mutableStateOf.</p>
+        <div class="tags"><span class="tag">@Composable</span><span class="tag">Column / Row</span><span class="tag">remember</span><span class="tag">mutableStateOf</span></div>
+        <a class="video-link" href="https://www.youtube.com/c/PhilippLackner" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner — Jetpack Compose Tutorials (Kanal)
+        </a>
+        <div class="task-box">Counter-App mit Compose bauen: + und − Buttons, Zähler in der Mitte, Farbe wechselt ab 0 ins Rote</div>
+        <button class="mark-btn" onclick="toggleDone('d25')" id="btn-d25">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d26">
+      <div class="day-header" onclick="toggleCard('d26')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d26')" aria-label="Tag 26 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 26</span><span class="day-title-text">ViewModel &amp; State Management</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">MVVM-Architektur mit ViewModel und StateFlow. Der ViewModel überlebt Screen-Rotationen. collectAsStateWithLifecycle in Compose.</p>
+        <div class="tags"><span class="tag">ViewModel</span><span class="tag">StateFlow</span><span class="tag">MVVM</span><span class="tag">collectAsState</span></div>
+        <a class="video-link" href="https://www.youtube.com/c/PhilippLackner" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner — ViewModel &amp; State in Compose
+        </a>
+        <div class="task-box">State der Counter-App aus Tag 25 in ein CounterViewModel mit StateFlow auslagern</div>
+        <button class="mark-btn" onclick="toggleDone('d26')" id="btn-d26">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d27">
+      <div class="day-header" onclick="toggleCard('d27')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d27')" aria-label="Tag 27 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 27</span><span class="day-title-text">Netzwerk mit Retrofit &amp; Coroutines</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Daten aus dem Internet laden. Retrofit + Gson für JSON-Parsing + Coroutines suspend-Funktionen. Standard-Kombination für API-Calls in Kotlin.</p>
+        <div class="tags"><span class="tag">Retrofit</span><span class="tag">suspend API</span><span class="tag">Gson</span><span class="tag">@GET / @POST</span></div>
+        <a class="video-link" href="https://www.youtube.com/c/PhilippLackner" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner — Retrofit + Coroutines Tutorial
+        </a>
+        <div class="task-box">Wetter-App: Aktuelle Wetterdaten von OpenWeatherMap API laden und in Compose anzeigen</div>
+        <button class="mark-btn" onclick="toggleDone('d27')" id="btn-d27">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d28">
+      <div class="day-header" onclick="toggleCard('d28')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d28')" aria-label="Tag 28 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 28</span><span class="day-title-text">Lokale Datenbank mit Room</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Daten lokal speichern mit Room (SQLite-Wrapper). @Entity für Tabellen, @Dao für Queries, @Database als Einstiegspunkt. Room + Flow für reaktive Updates.</p>
+        <div class="tags"><span class="tag">@Entity</span><span class="tag">@Dao</span><span class="tag">@Database</span><span class="tag">Room + Flow</span></div>
+        <a class="video-link" href="https://www.youtube.com/c/PhilippLackner" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner — Room Database Tutorial
+        </a>
+        <div class="task-box">To-Do-App aus Tag 7 um Room-Persistenz erweitern: Aufgaben überleben App-Neustart</div>
+        <button class="mark-btn" onclick="toggleDone('d28')" id="btn-d28">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d29">
+      <div class="day-header" onclick="toggleCard('d29')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d29')" aria-label="Tag 29 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 29</span><span class="day-title-text">Dependency Injection mit Hilt</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Hilt ist Googles offizielle DI-Lösung für Android. @Inject, @HiltViewModel, @Module, @Provides. DI macht Code testbarer, modularer und weniger abhängig.</p>
+        <div class="tags"><span class="tag">@Inject</span><span class="tag">@HiltViewModel</span><span class="tag">@Module</span><span class="tag">@Provides</span></div>
+        <a class="video-link" href="https://www.youtube.com/c/PhilippLackner" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner — Hilt Dependency Injection
+        </a>
+        <div class="task-box">Hilt in die Wetter-App integrieren: Repository injizieren, ViewModel über @HiltViewModel bereitstellen</div>
+        <button class="mark-btn" onclick="toggleDone('d29')" id="btn-d29">Als erledigt markieren</button>
+      </div>
+    </div>
+ 
+    <div class="day-card" id="d30">
+      <div class="day-header" onclick="toggleCard('d30')">
+        <button class="check-circle" onclick="event.stopPropagation();toggleDone('d30')" aria-label="Tag 30 abhaken"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></button>
+        <span class="day-num">Tag 30</span><span class="day-title-text">Abschlussprojekt — vollständige App</span>
+        <span class="chev"><svg viewBox="0 0 16 16"><polyline points="4,6 8,10 12,6"/></svg></span>
+      </div>
+      <div class="day-body">
+        <p class="day-desc">Du kombinierst alles aus dem Plan: Compose UI, ViewModel, Coroutines, Flow, Retrofit, Room, Hilt, Clean Architecture. Das ist dein Beweis, dass du Kotlin kannst.</p>
+        <div class="tags"><span class="tag">Alles!</span><span class="tag">Clean Architecture</span><span class="tag">MVVM</span><span class="tag">GitHub</span></div>
+        <a class="video-link" href="https://www.youtube.com/c/PhilippLackner" target="_blank">
+          <span class="yt-icon"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+          Philipp Lackner — Complete Android App from Scratch
+        </a>
+        <div class="task-box">News-Reader-App: Artikel von einer API laden, lokal mit Room cachen, nach Thema filtern, in einer LazyColumn anzeigen. Alles auf GitHub hochladen als Portfolio-Projekt!</div>
+        <button class="mark-btn" onclick="toggleDone('d30')" id="btn-d30">Als erledigt markieren</button>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="reset-area">
+    <button class="reset-btn" onclick="confirmReset()">Fortschritt zurücksetzen</button>
+  </div>
+ 
+</div>
+ 
+<script>
+const KEY = 'kotlin30_v2';
+ 
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+ 
+function save(s) {
+  try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e) {}
+}
+ 
+let state = load();
+ 
+function toggleDone(id) {
+  state[id] = !state[id];
+  save(state);
+  applyCard(id);
+  updateStats();
+}
+ 
+function applyCard(id) {
+  const card = document.getElementById(id);
+  if (!card) return;
+  const btn = document.getElementById('btn-'+id);
+  if (state[id]) {
+    card.classList.add('done');
+    if (btn) btn.textContent = 'Als nicht erledigt markieren';
+  } else {
+    card.classList.remove('done');
+    if (btn) btn.textContent = 'Als erledigt markieren';
+  }
+}
+ 
+function toggleCard(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+ 
+function updateStats() {
+  let done = 0;
+  for (let i = 1; i <= 30; i++) { if (state['d'+i]) done++; }
+  const pct = Math.round(done / 30 * 100);
+ 
+  document.getElementById('s-done').textContent = done;
+  document.getElementById('s-left').textContent = 30 - done;
+  document.getElementById('s-pct').textContent = pct + '%';
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-txt').textContent = done + ' / 30 Tage';
+ 
+  let streak = 0;
+  for (let i = 1; i <= 30; i++) {
+    if (state['d'+i]) streak++;
+    else break;
+  }
+  document.getElementById('s-streak').textContent = streak;
+  const sp = document.getElementById('streak-pill');
+  document.getElementById('streak-num').textContent = streak;
+  sp.style.display = streak >= 2 ? 'flex' : 'none';
+ 
+  const banner = document.getElementById('complete-banner');
+  banner.style.display = done === 30 ? 'block' : 'none';
+}
+ 
+function showPhase(n, btn) {
+  document.querySelectorAll('.phase-section').forEach((el, i) => {
+    el.classList.toggle('visible', i === n - 1);
+  });
+  document.querySelectorAll('.ptab').forEach((t, i) => {
+    t.classList.toggle('active', i === n - 1);
+  });
+}
+ 
+function confirmReset() {
+  if (confirm('Wirklich den gesamten Fortschritt zurücksetzen?')) {
+    state = {};
+    save(state);
+    for (let i = 1; i <= 30; i++) applyCard('d'+i);
+    updateStats();
+  }
+}
+ 
+for (let i = 1; i <= 30; i++) applyCard('d'+i);
+updateStats();
+</script>
+</body>
+</html>
+ 
